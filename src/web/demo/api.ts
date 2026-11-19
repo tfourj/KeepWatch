@@ -567,6 +567,7 @@ const ROUTES: [string, RegExp, Handler][] = [
     "POST",
     /^\/nodes$/,
     (_p, _u, body) => {
+      if (!state.clusters.some((c) => c.id === body.clusterId)) fail("clusterId: Pick a cluster");
       const n: DemoNode = {
         id: `n-${id()}`,
         name: String(body.name ?? "node"),

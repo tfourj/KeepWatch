@@ -10,7 +10,8 @@ import { useAction } from "@/lib/mutations";
 import { useOnOpen } from "@/lib/use-on-open";
 import type { Cluster, KeepNode } from "@/lib/types";
 
-const NO_CLUSTER = "none";
+/** Select value that creates a cluster with the typed name. */
+const NEW_CLUSTER = "new";
 
 /** Create or edit a node. Creating one opens the setup wizard afterwards. */
 export function NodeDialog({
@@ -26,8 +27,9 @@ export function NodeDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [clusterId, setClusterId] = useState(NO_CLUSTER);
-  const { data: clusters = [] } = useQuery({
+  const [picked, setPicked] = useState("");
+  const [newCluster, setNewCluster] = useState("");
+  const { data: clusters = [], isSuccess: clustersLoaded } = useQuery({
     queryKey: ["clusters"],
     queryFn: () => api.get<{ clusters: Cluster[] }>("/clusters"),
     select: (d) => d.clusters,
@@ -37,19 +39,26 @@ export function NodeDialog({
   useOnOpen(open, () => {
     setName(node?.name ?? "");
     setDescription(node?.description ?? "");
-    setClusterId(node?.clusterId ?? NO_CLUSTER);
+    setPicked(node?.clusterId ?? "");
+    setNewCluster("");
   });
 
-  const body = () => ({
-    name,
-    description: description.trim() || null,
-    clusterId: clusterId === NO_CLUSTER ? null : clusterId,
-  });
+  // With one cluster it is the obvious pick; with none, a new one is the only choice.
+  const clusterChoice =
+    picked || (clusters.length === 1 ? clusters[0]!.id : clustersLoaded && clusters.length === 0 ? NEW_CLUSTER : "");
+  const creating = clusterChoice === NEW_CLUSTER;
+  const ready = !!name.trim() && !!clusterChoice && (!creating || !!newCluster.trim());
+
   const save = useAction(
-    () =>
-      node
-        ? api.patch<{ node: KeepNode }>(`/nodes/${node.id}`, body())
-        : api.post<{ node: KeepNode }>("/nodes", body()),
+    async () => {
+      const clusterId = creating
+        ? (await api.post<{ cluster: Cluster }>("/clusters", { name: newCluster.trim() })).cluster.id
+        : clusterChoice;
+      const body = { name, description: description.trim() || null, clusterId };
+      return node
+        ? api.patch<{ node: KeepNode }>(`/nodes/${node.id}`, body)
+        : api.post<{ node: KeepNode }>("/nodes", body);
+    },
     {
       invalidate: [["nodes"], ["clusters"], ["overview"]],
       success: node ? "Node saved" : undefined,
@@ -78,22 +87,33 @@ export function NodeDialog({
             <Input id="node-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </Field>
           <Field label="Cluster">
-            <Select value={clusterId} onValueChange={setClusterId}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
+            <Select value={clusterChoice} onValueChange={setPicked} required>
+              <SelectTrigger className="w-full" aria-label="Cluster">
+                <SelectValue placeholder="Pick a cluster" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_CLUSTER}>No cluster</SelectItem>
                 {clusters.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
                 ))}
+                <SelectItem value={NEW_CLUSTER}>New cluster</SelectItem>
               </SelectContent>
             </Select>
           </Field>
+          {creating && (
+            <Field label="New cluster name" htmlFor="node-new-cluster">
+              <Input
+                id="node-new-cluster"
+                value={newCluster}
+                placeholder="homelab"
+                onChange={(e) => setNewCluster(e.target.value)}
+                required
+              />
+            </Field>
+          )}
           <DialogFooter>
-            <Button type="submit" disabled={save.isPending || !name.trim()}>
+            <Button type="submit" disabled={save.isPending || !ready}>
               {node ? "Save" : "Add and set up"}
             </Button>
           </DialogFooter>
