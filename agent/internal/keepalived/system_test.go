@@ -36,6 +36,12 @@ func testSystem(t *testing.T, f *fakeRun) *System {
 			if f.testFails {
 				return "Unknown keyword 'bogus'", errors.New("exit status 1")
 			}
+			// Like keepalived, refuse a config whose track files do not exist yet.
+			for _, path := range trackedFiles(t, args[2]) {
+				if _, err := os.Stat(path); err != nil {
+					return "realpath() error 2 (No such file or directory) for " + path, errors.New("exit status 1")
+				}
+			}
 			return "", nil
 		case name == "systemctl" && args[0] == "is-active":
 			return "active\n", nil
@@ -54,6 +60,26 @@ func testSystem(t *testing.T, f *fakeRun) *System {
 	}
 	s.Now = func() time.Time { return time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC) }
 	return s
+}
+
+// trackedFiles lists the `file` lines of track_file blocks in the config under test, following its include.
+func trackedFiles(t *testing.T, mainPath string) []string {
+	t.Helper()
+	main, _ := os.ReadFile(mainPath)
+	var files []string
+	for _, line := range strings.Split(string(main), "\n") {
+		included, ok := strings.CutPrefix(strings.TrimSpace(line), "include ")
+		if !ok {
+			continue
+		}
+		conf, _ := os.ReadFile(included)
+		for _, l := range strings.Split(string(conf), "\n") {
+			if path, ok := strings.CutPrefix(strings.TrimSpace(l), "file "); ok {
+				files = append(files, path)
+			}
+		}
+	}
+	return files
 }
 
 func request(t *testing.T) ApplyRequest {

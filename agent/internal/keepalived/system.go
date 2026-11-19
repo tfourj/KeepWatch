@@ -357,6 +357,11 @@ func (s *System) Apply(ctx context.Context, req ApplyRequest, open Opener, say L
 		return ApplyResult{}, fmt.Errorf("keepalived %s cannot test a config before using it; 2.0.11 or newer is needed", version)
 	}
 
+	// keepalived checks that tracked files exist, also when it only tests a config, so they come first. They only
+	// hold 0 until maintenance is turned on, and a config that does not use them ignores them.
+	if err := s.prepareTrackFiles(spec); err != nil {
+		return ApplyResult{}, err
+	}
 	say("Testing the new config with keepalived")
 	if err := s.configTest(ctx, plan); err != nil {
 		return ApplyResult{}, err
@@ -379,7 +384,7 @@ func (s *System) Apply(ctx context.Context, req ApplyRequest, open Opener, say L
 		s.pruneBackups(filepath.Base(s.MainConf))
 	}
 
-	if err := s.prepareRuntime(spec); err != nil {
+	if err := s.writeChecks(spec); err != nil {
 		return ApplyResult{}, err
 	}
 	say("Writing " + s.ManagedPath)
@@ -446,8 +451,9 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
-// prepareRuntime creates the FIFO, the maintenance files and the check definitions keepalived needs.
-func (s *System) prepareRuntime(spec *Spec) error {
+// prepareTrackFiles creates the maintenance files and the notify FIFO the new config refers to. Existing
+// maintenance files keep their value.
+func (s *System) prepareTrackFiles(spec *Spec) error {
 	if err := os.MkdirAll(s.Paths.MaintenanceDir, 0o700); err != nil {
 		return err
 	}
@@ -459,14 +465,17 @@ func (s *System) prepareRuntime(spec *Spec) error {
 			}
 		}
 	}
+	return EnsureFIFO(s.Paths.FIFO)
+}
+
+// writeChecks saves the check definitions `keepwatch-agent check <id>` runs. Only after the config passed its test,
+// since the running config uses the same file.
+func (s *System) writeChecks(spec *Spec) error {
 	data, err := json.MarshalIndent(spec.Checks, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := writeAtomic(s.checksPath(), data, 0o600); err != nil {
-		return err
-	}
-	return EnsureFIFO(s.Paths.FIFO)
+	return writeAtomic(s.checksPath(), data, 0o600)
 }
 
 // EnsureFIFO creates the notify FIFO keepalived writes state changes to.
