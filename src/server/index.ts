@@ -10,6 +10,7 @@ import { runMigrations } from "./db/client";
 import { env } from "./env";
 import { securityHeaders } from "./http/headers";
 import { requireSameOrigin } from "./http/origin";
+import { startStateTracking } from "./keepalived/state";
 import { createLogger } from "./logger";
 import { agentPublicRoutes } from "./routes/agent-public";
 import { apiRoutes } from "./routes/api";
@@ -19,6 +20,7 @@ const log = createLogger("server");
 
 runMigrations();
 agentHub.reset();
+startStateTracking(agentHub);
 
 const devOrigins = process.env.NODE_ENV === "production" ? [] : ["http://localhost:5173"];
 
