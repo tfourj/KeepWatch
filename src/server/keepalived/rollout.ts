@@ -73,7 +73,7 @@ export async function planCluster(clusterId: string): Promise<NodePlan[]> {
       let built;
       const command = agentHub.sendSealed(agent!.id, "ka_plan", (seal) => {
         built = buildNodeSpec(nodeId, seal);
-        return { spec: built.spec, migrate: [] };
+        return { spec: built.spec, migrate: node.migrateInstances ?? [] };
       }, { ttlMs: PLAN_TIMEOUT_MS });
       const problems = built!.problems;
       const ack = await agentHub.waitForAck(command.id, PLAN_TIMEOUT_MS);
@@ -95,7 +95,7 @@ const running = new Set<string>();
 export class RolloutError extends Error {}
 
 /** Starts applying the cluster's config. Returns the rollout id; progress is read with getRollout. */
-export function startRollout(clusterId: string, opts: { migrate?: Record<string, string[]> } = {}) {
+export function startRollout(clusterId: string) {
   const cluster = db.select().from(clusters).where(eq(clusters.id, clusterId)).get();
   if (!cluster) throw new RolloutError("cluster not found");
   if (running.has(clusterId)) throw new RolloutError("a rollout is already running for this cluster");
@@ -110,7 +110,7 @@ export function startRollout(clusterId: string, opts: { migrate?: Record<string,
     db.insert(configRolloutNodes).values({ rolloutId: rollout.id, nodeId, position }).run();
   });
   running.add(clusterId);
-  void runRollout(rollout.id, cluster.name, ids, opts.migrate ?? {})
+  void runRollout(rollout.id, cluster.name, ids)
     .catch((error) => log.error("rollout crashed", { error }))
     .finally(() => running.delete(clusterId));
   return rollout.id;
@@ -123,7 +123,7 @@ async function waitHealthy(nodeId: string) {
   return null;
 }
 
-async function runRollout(rolloutId: string, clusterName: string, ids: string[], migrate: Record<string, string[]>) {
+async function runRollout(rolloutId: string, clusterName: string, ids: string[]) {
   let failed: string | null = null;
   for (const nodeId of ids) {
     const node = db.select().from(nodes).where(eq(nodes.id, nodeId)).get();
@@ -142,7 +142,7 @@ async function runRollout(rolloutId: string, clusterName: string, ids: string[],
     const command = agentHub.sendSealed(agent!.id, "ka_apply", (seal) => {
       const built = buildNodeSpec(nodeId, seal);
       hash = built.hash;
-      return { spec: built.spec, migrate: migrate[nodeId] ?? [] };
+      return { spec: built.spec, migrate: node.migrateInstances ?? [] };
     }, { ttlMs: APPLY_TIMEOUT_MS });
     setNode(rolloutId, nodeId, { status: "applying", commandId: command.id, startedAt: new Date(), hash });
     const ack: AckResult = await agentHub.waitForAck(command.id, APPLY_TIMEOUT_MS);
@@ -164,7 +164,10 @@ async function runRollout(rolloutId: string, clusterName: string, ids: string[],
       continue;
     }
     const changed = ack.result?.changed !== false;
-    db.update(nodes).set({ appliedSpecHash: hash, appliedAt: new Date() }).where(eq(nodes.id, nodeId)).run();
+    db.update(nodes)
+      .set({ appliedSpecHash: hash, appliedAt: new Date(), migrateInstances: null })
+      .where(eq(nodes.id, nodeId))
+      .run();
     const unhealthy = changed ? await waitHealthy(nodeId) : null;
     if (unhealthy) {
       setNode(rolloutId, nodeId, { status: "failed", error: unhealthy, output, finishedAt: new Date() });
