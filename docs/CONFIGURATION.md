@@ -4,7 +4,8 @@
 
 1. Open `BASE_URL` and create your account. It is the only account; registration closes afterwards.
 2. In **Clusters**, add a cluster for each group of machines that share virtual IPs.
-3. In **Nodes**, add each keepalived machine to its cluster and run the install command on it (see [Agents](#agents)).
+3. In **Nodes**, add each keepalived machine to its cluster, or create the cluster there, and run the install command
+   on it (see [Agents](#agents)).
 4. In the setup step, choose **Manage with KeepWatch**, **Import into KeepWatch** for an existing config, or
    **Monitor only**.
 5. In **Clusters**, add a VIP, pick its members and priorities, then press **Apply**.
@@ -64,6 +65,9 @@ pacman. Managing the config needs keepalived 2.0.11 or newer, so each change can
 **Apply** shows the change for each node, then applies it to backups first and the current master last. Each node
 tests the new config with `keepalived --config-test`, keeps a `.keepwatch-<time>` backup (the last 10), reloads
 keepalived and restores the backup if keepalived does not come up. A failed node stops the rollout.
+
+A node whose config is behind shows **Changes not applied** or **Import pending** with an **Apply** button that opens
+its cluster's preview.
 
 If `keepwatch.conf` is edited by hand, the node shows **Edited outside KeepWatch** and the next apply replaces it.
 
