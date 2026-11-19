@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { checkInputSchema } from "@shared/clusters";
 import { CHECK_TYPE_LABELS, CHECK_TYPES, SCRIPT_DIR, type CheckParams, type CheckType } from "@shared/keepalived";
 import { Field, SwitchRow } from "@/components/common";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import { useAction } from "@/lib/mutations";
+import { useOnOpen } from "@/lib/use-on-open";
 import type { Check, Cluster } from "@/lib/types";
 
 type Form = {
@@ -113,12 +114,10 @@ export function CheckDialog({
 }) {
   const [form, setForm] = useState<Form>(toForm(check));
   const [keyEdited, setKeyEdited] = useState(!!check);
-  useEffect(() => {
-    if (open) {
-      setForm(toForm(check));
-      setKeyEdited(!!check);
-    }
-  }, [open, check]);
+  useOnOpen(open, () => {
+    setForm(toForm(check));
+    setKeyEdited(!!check);
+  });
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
 
   const body = {

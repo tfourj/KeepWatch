@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Field } from "@/components/common";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { useAction } from "@/lib/mutations";
+import { useOnOpen } from "@/lib/use-on-open";
 import type { Cluster, KeepNode } from "@/lib/types";
 
 const NO_CLUSTER = "none";
@@ -33,12 +34,11 @@ export function NodeDialog({
     enabled: open,
   });
 
-  useEffect(() => {
-    if (!open) return;
+  useOnOpen(open, () => {
     setName(node?.name ?? "");
     setDescription(node?.description ?? "");
-    setClusterId(node?.clusterId ?? (clusters.length === 1 ? clusters[0]!.id : NO_CLUSTER));
-  }, [open, node, clusters]);
+    setClusterId(node?.clusterId ?? NO_CLUSTER);
+  });
 
   const body = () => ({
     name,

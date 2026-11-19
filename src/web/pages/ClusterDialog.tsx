@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Field } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { useAction } from "@/lib/mutations";
+import { useOnOpen } from "@/lib/use-on-open";
 import type { Cluster } from "@/lib/types";
 
 export function ClusterDialog({
@@ -18,11 +19,10 @@ export function ClusterDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  useEffect(() => {
-    if (!open) return;
+  useOnOpen(open, () => {
     setName(cluster?.name ?? "");
     setDescription(cluster?.description ?? "");
-  }, [open, cluster]);
+  });
   const body = () => ({ name, description: description.trim() || null });
   const save = useAction(
     () => (cluster ? api.patch(`/clusters/${cluster.id}`, body()) : api.post("/clusters", body())),

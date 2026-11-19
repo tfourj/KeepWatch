@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { instanceInputProblems, instanceInputSchema } from "@shared/clusters";
 import { Field, SwitchRow } from "@/components/common";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import { useAction } from "@/lib/mutations";
+import { useOnOpen } from "@/lib/use-on-open";
 import type { Cluster, KeepNode, Vip } from "@/lib/types";
 
 type MemberForm = { included: boolean; priority: number; interface: string; master: boolean };
@@ -124,12 +125,10 @@ export function VipDialog({
   const clusterNodes = useMemo(() => nodes.filter((n) => n.clusterId === cluster.id), [nodes, cluster.id]);
   const [form, setForm] = useState<Form>(() => toForm(cluster, clusterNodes, vip));
   const [touched, setTouched] = useState(false);
-  useEffect(() => {
-    if (open) {
-      setForm(toForm(cluster, clusterNodes, vip));
-      setTouched(false);
-    }
-  }, [open, cluster, clusterNodes, vip]);
+  useOnOpen(open, () => {
+    setForm(toForm(cluster, clusterNodes, vip));
+    setTouched(false);
+  });
 
   const save = useAction(
     () =>
@@ -140,7 +139,10 @@ export function VipDialog({
   );
   const issues = problems(form, vip);
   const setMember = (id: string, patch: Partial<MemberForm>) =>
-    setForm((f) => ({ ...f, members: { ...f.members, [id]: { ...f.members[id]!, ...patch } } }));
+    setForm((f) => {
+      const current = f.members[id] ?? { included: false, priority: 100, interface: "", master: false };
+      return { ...f, members: { ...f.members, [id]: { ...current, ...patch } } };
+    });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -263,7 +265,8 @@ export function VipDialog({
             ) : (
               <div className="grid gap-2">
                 {clusterNodes.map((n) => {
-                  const m = form.members[n.id]!;
+                  // The form is rebuilt when the dialog opens; nodes can load before that.
+                  const m = form.members[n.id] ?? { included: false, priority: 100, interface: "", master: false };
                   return (
                     <div key={n.id} className="grid grid-cols-[1fr_5rem_7rem_auto] items-center gap-2">
                       <label className="flex min-w-0 cursor-pointer items-center gap-2 text-sm">
