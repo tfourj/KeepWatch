@@ -12,6 +12,7 @@ import { securityHeaders } from "./http/headers";
 import { requireSameOrigin } from "./http/origin";
 import { startStateTracking } from "./keepalived/state";
 import { createLogger } from "./logger";
+import { startDispatcher } from "./notify/dispatcher";
 import { agentPublicRoutes } from "./routes/agent-public";
 import { apiRoutes } from "./routes/api";
 import { serveWeb } from "./static";
@@ -21,6 +22,7 @@ const log = createLogger("server");
 runMigrations();
 agentHub.reset();
 startStateTracking(agentHub);
+startDispatcher();
 
 const devOrigins = process.env.NODE_ENV === "production" ? [] : ["http://localhost:5173"];
 
