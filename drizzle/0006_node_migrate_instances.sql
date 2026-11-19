@@ -1,0 +1,1 @@
+ALTER TABLE `nodes` ADD `migrate_instances` text;

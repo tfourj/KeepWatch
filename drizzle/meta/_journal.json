@@ -43,6 +43,13 @@
       "when": 1795104011260,
       "tag": "0005_clusters",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795104335718,
+      "tag": "0006_node_migrate_instances",
+      "breakpoints": true
     }
   ]
 }

@@ -129,6 +129,8 @@ export const nodes = sqliteTable("nodes", {
   status: text({ mode: "json" }).$type<KaStatus & { reportedAt: number }>(),
   /** Problems already notified, so each is reported once until it recovers. */
   problems: text({ mode: "json" }).$type<string[]>(),
+  /** Existing vrrp_instance names the next apply comments out, after they were imported into KeepWatch. */
+  migrateInstances: text({ mode: "json" }).$type<string[]>(),
   /** Hash of the spec last applied, to show which nodes are behind. */
   appliedSpecHash: text(),
   appliedAt: ts(),
