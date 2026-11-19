@@ -76,7 +76,7 @@ export type DemoEvent = {
 export type DemoChannel = {
   id: string;
   name: string;
-  type: "ntfy" | "discord" | "email";
+  type: "ntfy" | "discord" | "email" | "telegram";
   enabled: boolean;
   events: EventType[];
   config: Record<string, string | number>;
@@ -341,6 +341,26 @@ export function generateDemoData(now = Date.now()): DemoData {
     },
   ];
 
+  channels.push(
+    {
+      id: "ch-home",
+      name: "Homelab",
+      type: "telegram",
+      enabled: true,
+      events: ["failover", "no_master", "master_restored", "check_failed", "check_recovered", "maintenance_on"],
+      config: { chatId: "-1001234567890" },
+      secretsSet: { botToken: true },
+    },
+    {
+      id: "ch-mail",
+      name: "On-call email",
+      type: "email",
+      enabled: false,
+      events: ["split_brain", "no_master", "keepalived_service_failed", "config_failed", "config_rolled_back"],
+      config: { to: "oncall@example.com" },
+      secretsSet: { password: true },
+    },
+  );
   const name = (id: string | null) => nodes.find((n) => n.id === id)?.name ?? "";
   const clusterName = (id: string | null) => clusters.find((c) => c.id === id)?.name ?? "";
   const events: DemoEvent[] = [];
