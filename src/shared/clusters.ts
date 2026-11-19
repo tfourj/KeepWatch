@@ -20,6 +20,8 @@ export type MemberInput = z.infer<typeof memberInputSchema>;
 
 export const instanceInputSchema = z.object({
   name: z.string().regex(NAME_RE, "Use letters, digits, _ . - (at most 32)"),
+  /** What runs behind the addresses, for example "AdGuard Home". */
+  service: z.string().trim().max(64).nullable().default(null),
   vrid: z.number().int().min(1).max(255),
   vrrpVersion: z.union([z.literal(2), z.literal(3)]).default(3),
   interface: z.string().regex(IFACE_RE, "Invalid interface name"),

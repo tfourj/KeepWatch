@@ -1,0 +1,1 @@
+ALTER TABLE `vrrp_instances` ADD `service` text;

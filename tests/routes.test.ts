@@ -50,6 +50,14 @@ describe("cluster API", () => {
     expect(read.text).not.toContain("authPassEnc");
   });
 
+  test("stores the service name shown in the UI", async () => {
+    const { cluster, a, b } = await setup();
+    const created = await call("POST", `/clusters/${cluster.id}/instances`, vip(a.id, b.id, { service: "AdGuard Home" }));
+    expect(created.json.instance.service).toBe("AdGuard Home");
+    const long = await call("POST", `/clusters/${cluster.id}/instances`, vip(a.id, b.id, { service: "x".repeat(65) }));
+    expect(long.status).toBe(400);
+  });
+
   test("keeps the password when an edit leaves it out", async () => {
     const { cluster, a, b } = await setup();
     const id = (await call("POST", `/clusters/${cluster.id}/instances`, vip(a.id, b.id))).json.instance.id;

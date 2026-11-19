@@ -208,6 +208,8 @@ export const vrrpInstances = sqliteTable(
       .references(() => clusters.id, { onDelete: "cascade" }),
     /** vrrp_instance name in the config. */
     name: text().notNull(),
+    /** What runs behind the addresses, for example "AdGuard Home". Only shown in the UI. */
+    service: text(),
     vrid: integer().notNull(),
     vrrpVersion: integer().notNull().default(3),
     /** Default interface, members can override it. */

@@ -57,6 +57,13 @@
       "when": 1795104555678,
       "tag": "0007_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795106177148,
+      "tag": "0008_vip_service",
+      "breakpoints": true
     }
   ]
 }
