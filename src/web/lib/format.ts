@@ -1,3 +1,4 @@
+import type { TimeOptions } from "@shared/templates";
 import { DEFAULT_TIME_PREFERENCES, hourCycleFor, type TimePreferences } from "@shared/time";
 
 let timePreferences: TimePreferences = DEFAULT_TIME_PREFERENCES;
@@ -9,9 +10,9 @@ export function setTimePreferences(prefs: TimePreferences, serverZone?: string) 
   serverTimezone = serverZone;
 }
 
-/** The timezone the server uses for `{time}` when none is chosen. */
-export function notificationTimezone(): string | undefined {
-  return timePreferences.timezone ?? serverTimezone;
+/** Timezone and clock the server uses for `{time}` in notifications. */
+export function notificationTimeOptions(): TimeOptions {
+  return { timeZone: timePreferences.timezone ?? serverTimezone, timeFormat: timePreferences.timeFormat };
 }
 
 export function currentTimePreferences(): TimePreferences {

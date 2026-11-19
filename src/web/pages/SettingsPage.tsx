@@ -1,0 +1,378 @@
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { DEFAULT_TEMPLATE, EVENT_LABELS, EVENT_TYPES, TEMPLATE_VARIABLES, type EventType } from "@shared/events";
+import { matchTemplatePreset, TEMPLATE_PRESETS } from "@shared/template-presets";
+import { Field } from "@/components/common";
+import { TemplatePreview } from "@/components/TemplatePreview";
+import { TimeSettings } from "@/components/TimeSettings";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+import { formatDateTime } from "@/lib/format";
+import { useAction } from "@/lib/mutations";
+import type { AppSettings, SystemInfo } from "@/lib/types";
+import { SecurityTab } from "./SecurityTab";
+
+type SettingsResponse = { settings: AppSettings; system: SystemInfo };
+
+/** Select value shown when the templates match no preset. Radix Select does not allow an empty value. */
+const CUSTOM_PRESET = "custom";
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  help,
+  min,
+  max,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  help?: string;
+  min?: number;
+  max?: number;
+}) {
+  const id = label.toLowerCase().replace(/\W+/g, "-");
+  return (
+    <Field label={label} htmlFor={id} help={help}>
+      <Input
+        id={id}
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </Field>
+  );
+}
+
+function GeneralTab({ data, onSave }: { data: SettingsResponse; onSave: (p: Partial<AppSettings>) => Promise<unknown> }) {
+  const [s, setS] = useState(data.settings);
+  useEffect(() => setS(data.settings), [data.settings]);
+  const check = useAction(() => api.post<SystemInfo>("/settings/check-agent-release"), {
+    invalidate: [["settings"], ["nodes"]],
+    success: (r) => {
+      if (r.latestAgentError) return "Agent release check failed";
+      return r.latestAgent ? `Latest agent: v${r.latestAgent.version}` : "No agent release published yet";
+    },
+  });
+  const sys = data.system;
+  /** The release version or none, with when releases were last checked. */
+  const releaseText = () => {
+    if (sys.latestAgentError) return `Check failed: ${sys.latestAgentError}`;
+    if (!sys.agentReleaseCheckedAt) return "Not checked yet";
+    const checked = `checked ${formatDateTime(sys.agentReleaseCheckedAt)}`;
+    return sys.latestAgent ? `v${sys.latestAgent.version} (${checked})` : `None published (${checked})`;
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Monitoring</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <NumberField
+            label="Extra alert delay (s)"
+            help="Added to three advert intervals before split brain or no master is reported"
+            value={s.alertGraceSec}
+            min={0}
+            max={600}
+            onChange={(v) => setS({ ...s, alertGraceSec: v })}
+          />
+          <NumberField
+            label="Group failovers within (s)"
+            help="Repeated failovers of one VIP are sent as one message. 0 sends each."
+            value={s.flapWindowSec}
+            min={0}
+            max={3600}
+            onChange={(v) => setS({ ...s, flapWindowSec: v })}
+          />
+          <NumberField
+            label="Agent update check (minutes)"
+            value={s.agentUpdateCheckMinutes}
+            min={5}
+            max={1440}
+            onChange={(v) => setS({ ...s, agentUpdateCheckMinutes: v })}
+          />
+          <NumberField
+            label="Keep events (days)"
+            value={s.eventRetentionDays}
+            min={1}
+            onChange={(v) => setS({ ...s, eventRetentionDays: v })}
+          />
+          <NumberField
+            label="Keep state history (days)"
+            value={s.historyRetentionDays}
+            min={1}
+            onChange={(v) => setS({ ...s, historyRetentionDays: v })}
+          />
+        </CardContent>
+        <CardFooter>
+          <Button onClick={() => onSave(s)}>Save</Button>
+        </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Server</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-3 text-sm">
+            {[
+              ["Base URL", sys.baseUrl],
+              ["Version", sys.commit ? `v${sys.version} (${sys.commit})` : `v${sys.version}`],
+              ["Time zone", sys.timezone],
+              ["Agent releases", sys.agentRepo],
+              ["Latest agent", releaseText()],
+            ].map(([k, v]) => (
+              <div key={k} className="grid grid-cols-[8rem_1fr] gap-2">
+                <dt className="text-muted-foreground">{k}</dt>
+                <dd className="font-mono text-xs break-all">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" onClick={() => check.mutate(undefined)} disabled={check.isPending}>
+            <RefreshCw className={check.isPending ? "animate-spin" : ""} />
+            Check agent release
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <TimeSettings
+        time={data.settings.time}
+        serverTimezone={sys.timezone}
+        onSave={(time) => onSave({ time })}
+      />
+    </div>
+  );
+}
+
+function TemplatesTab({ data, onSave }: { data: SettingsResponse; onSave: (p: Partial<AppSettings>) => Promise<unknown> }) {
+  const [templates, setTemplates] = useState(data.settings.templates);
+  useEffect(() => setTemplates(data.settings.templates), [data.settings.templates]);
+  const [previewing, setPreviewing] = useState<EventType[]>([]);
+  const types = EVENT_TYPES.filter((t) => t !== "test");
+
+  const togglePreview = (type: EventType) =>
+    setPreviewing((p) => (p.includes(type) ? p.filter((t) => t !== type) : [...p, type]));
+
+  const update = (type: string, key: "title" | "body", value: string) => {
+    const current = templates[type] ?? DEFAULT_TEMPLATE;
+    setTemplates({ ...templates, [type]: { ...current, [key]: value } });
+  };
+
+  const preset = matchTemplatePreset(templates);
+  const applyPreset = (id: string) => {
+    const next = TEMPLATE_PRESETS.find((p) => p.id === id);
+    if (next) setTemplates({ ...next.templates });
+  };
+
+  const save = () => {
+    // Drop templates equal to the default so they follow future default changes.
+    const cleaned = Object.fromEntries(
+      Object.entries(templates).filter(([, t]) => t.title !== DEFAULT_TEMPLATE.title || t.body !== DEFAULT_TEMPLATE.body),
+    );
+    return onSave({ templates: cleaned });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardDescription>Variables: {TEMPLATE_VARIABLES.map((v) => `{${v}}`).join(" ")}</CardDescription>
+        <CardAction>
+          <Select value={preset?.id ?? CUSTOM_PRESET} onValueChange={applyPreset}>
+            <SelectTrigger className="w-44" aria-label="Preset">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TEMPLATE_PRESETS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.label}
+                </SelectItem>
+              ))}
+              {!preset && (
+                <SelectItem value={CUSTOM_PRESET} disabled>
+                  Custom
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="divide-y">
+        {types.map((type) => {
+          const t = templates[type] ?? DEFAULT_TEMPLATE;
+          const open = previewing.includes(type);
+          return (
+            <div key={type} className="grid gap-3 py-4 first:pt-0 md:grid-cols-[12rem_1fr_2fr_auto]">
+              <p className="pt-2 text-sm font-medium">{EVENT_LABELS[type]}</p>
+              <Input value={t.title} onChange={(e) => update(type, "title", e.target.value)} aria-label="Title" />
+              <Textarea
+                value={t.body}
+                onChange={(e) => update(type, "body", e.target.value)}
+                rows={1}
+                className="min-h-9"
+                aria-label="Body"
+              />
+              <Button
+                variant="outline"
+                onClick={() => togglePreview(type)}
+                aria-pressed={open}
+                className="justify-self-start"
+              >
+                {open ? <EyeOff /> : <Eye />}
+                Preview
+              </Button>
+              {open && <TemplatePreview eventType={type} template={t} className="md:col-start-2 md:col-end-4" />}
+            </div>
+          );
+        })}
+      </CardContent>
+      <CardFooter>
+        <Button onClick={save}>Save templates</Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function AccountTab() {
+  const { data: session, refetch } = authClient.useSession();
+  const [name, setName] = useState("");
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  useEffect(() => setName(session?.user.name ?? ""), [session?.user.name]);
+
+  async function saveName() {
+    const { error } = await authClient.updateUser({ name });
+    if (error) toast.error(error.message ?? "Could not update");
+    else {
+      toast.success("Name updated");
+      refetch();
+    }
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    const { error } = await authClient.changePassword({
+      currentPassword: current,
+      newPassword: next,
+      revokeOtherSessions: true,
+    });
+    if (error) toast.error(error.message ?? "Could not change password");
+    else {
+      toast.success("Password changed, other sessions signed out");
+      setCurrent("");
+      setNext("");
+    }
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Field label="Name" htmlFor="acc-name">
+            <Input id="acc-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Email" htmlFor="acc-email">
+            <Input id="acc-email" value={session?.user.email ?? ""} disabled />
+          </Field>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={saveName}>Save</Button>
+        </CardFooter>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Password</CardTitle>
+        </CardHeader>
+        <form onSubmit={changePassword}>
+          <CardContent className="grid gap-4">
+            <Field label="Current password" htmlFor="acc-current">
+              <Input
+                id="acc-current"
+                type="password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </Field>
+            <Field label="New password" htmlFor="acc-new" help="At least 8 characters">
+              <Input
+                id="acc-new"
+                type="password"
+                value={next}
+                onChange={(e) => setNext(e.target.value)}
+                minLength={8}
+                autoComplete="new-password"
+                required
+              />
+            </Field>
+          </CardContent>
+          <CardFooter className="pt-6">
+            <Button type="submit">Change password</Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+export function SettingsPage() {
+  const { data } = useQuery({ queryKey: ["settings"], queryFn: () => api.get<SettingsResponse>("/settings") });
+  const save = useAction((patch: Partial<AppSettings>) => api.patch<SettingsResponse>("/settings", patch), {
+    invalidate: [["settings"]],
+    success: "Settings saved",
+  });
+  const onSave = (patch: Partial<AppSettings>) => save.mutateAsync(patch);
+
+  return (
+    <Tabs defaultValue="general">
+      <TabsList className="mb-2">
+        <TabsTrigger value="general">General</TabsTrigger>
+        <TabsTrigger value="templates">Templates</TabsTrigger>
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="security">Security</TabsTrigger>
+      </TabsList>
+      {data && (
+        <>
+          <TabsContent value="general">
+            <GeneralTab data={data} onSave={onSave} />
+          </TabsContent>
+          <TabsContent value="templates">
+            <TemplatesTab data={data} onSave={onSave} />
+          </TabsContent>
+        </>
+      )}
+      <TabsContent value="account">
+        <AccountTab />
+      </TabsContent>
+      <TabsContent value="security">
+        <SecurityTab />
+      </TabsContent>
+    </Tabs>
+  );
+}

@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink, Outlet, useNavigate } from "react-router";
-import { LayoutDashboard, LogOut, Menu, Monitor, Moon, Sun } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Monitor,
+  Moon,
+  Settings,
+  Sun,
+} from "lucide-react";
 import { DEFAULT_TIME_PREFERENCES } from "@shared/time";
 import { Brand } from "@/components/Brand";
 import { GitHubIcon } from "@/components/GitHubIcon";
@@ -26,6 +36,9 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/events", label: "Events", icon: Activity },
+  { to: "/channels", label: "Channels", icon: Bell },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
