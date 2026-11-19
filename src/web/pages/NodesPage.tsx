@@ -111,8 +111,10 @@ function NodeMenu({
   });
   const inMaintenance = node.members.some((m) => m.maintenance);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label={`Actions for ${node.name}`}>
           <MoreHorizontal />
@@ -136,6 +138,7 @@ function NodeMenu({
           Reload keepalived
         </DropdownMenuItem>
         <ConfirmAction
+          onClosed={closeMenu}
           trigger={
             <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={!ready}>
               <RotateCw />
@@ -177,6 +180,7 @@ function NodeMenu({
         <DropdownMenuSeparator />
         {node.agent && (
           <ConfirmAction
+            onClosed={closeMenu}
             trigger={
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <Unlink />
@@ -191,6 +195,7 @@ function NodeMenu({
           />
         )}
         <ConfirmAction
+          onClosed={closeMenu}
           trigger={
             <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
               <Trash2 />

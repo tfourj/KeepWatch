@@ -19,6 +19,7 @@ export function ConfirmAction({
   confirmLabel = "Confirm",
   destructive = false,
   onConfirm,
+  onClosed,
 }: {
   trigger: ReactNode;
   title: string;
@@ -26,10 +27,16 @@ export function ConfirmAction({
   confirmLabel?: string;
   destructive?: boolean;
   onConfirm: () => unknown;
+  /** Runs when the dialog closes, for example to close the menu it was opened from. */
+  onClosed?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const change = (next: boolean) => {
+    setOpen(next);
+    if (!next) onClosed?.();
+  };
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={change}>
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -42,7 +49,7 @@ export function ConfirmAction({
             className={destructive ? buttonVariants({ variant: "destructive" }) : undefined}
             onClick={async () => {
               await onConfirm();
-              setOpen(false);
+              change(false);
             }}
           >
             {confirmLabel}
