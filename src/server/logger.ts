@@ -1,13 +1,9 @@
-type Level = "debug" | "info" | "warn" | "error";
+import { LOG_LEVELS, logBuffer, type LogLevel as Level } from "./log-buffer";
 
-const order: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
-
-function configuredLevel(): Level {
-  const value = (process.env.LOG_LEVEL ?? "info").toLowerCase();
-  return value in order ? (value as Level) : "info";
+function threshold(): number {
+  const value = (process.env.LOG_LEVEL ?? "info").toLowerCase() as Level;
+  return LOG_LEVELS[value] ?? LOG_LEVELS.info;
 }
-
-const threshold = order[configuredLevel()];
 
 function serializeError(value: unknown) {
   if (value instanceof Error) return { name: value.name, message: value.message, stack: value.stack };
@@ -15,7 +11,7 @@ function serializeError(value: unknown) {
 }
 
 function write(level: Level, scope: string, msg: string, fields?: Record<string, unknown>) {
-  if (order[level] < threshold) return;
+  if (LOG_LEVELS[level] < threshold()) return;
   const entry: Record<string, unknown> = { ts: new Date().toISOString(), level, scope, msg };
   if (fields) {
     for (const [key, value] of Object.entries(fields)) entry[key] = serializeError(value);
@@ -23,6 +19,10 @@ function write(level: Level, scope: string, msg: string, fields?: Record<string,
   const line = JSON.stringify(entry);
   if (level === "error" || level === "warn") console.error(line);
   else console.log(line);
+
+  // A detached copy for the Logs page, split into the fixed parts and the extra fields.
+  const { ts, level: _level, scope: _scope, msg: _msg, ...rest } = JSON.parse(line) as Record<string, unknown>;
+  logBuffer.push({ time: ts as string, level, scope, msg, fields: rest });
 }
 
 export type Logger = ReturnType<typeof createLogger>;
