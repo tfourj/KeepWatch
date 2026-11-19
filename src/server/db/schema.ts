@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { KaStatus } from "../../shared/keepalived";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import type { CheckParams, KaStatus, VirtualIp, VrrpState } from "../../shared/keepalived";
 
 const now = sql`(unixepoch() * 1000)`;
 const ts = () => integer({ mode: "timestamp_ms" });
@@ -194,4 +194,150 @@ export const commands = sqliteTable(
     error: text(),
   },
   (t) => [index("commands_agent_status_idx").on(t.agentId, t.status)],
+);
+
+/** One VRRP instance: a set of virtual IPs that move between the member nodes. Called a VIP in the UI. */
+export const vrrpInstances = sqliteTable(
+  "vrrp_instances",
+  {
+    id: uuid(),
+    clusterId: text()
+      .notNull()
+      .references(() => clusters.id, { onDelete: "cascade" }),
+    /** vrrp_instance name in the config. */
+    name: text().notNull(),
+    vrid: integer().notNull(),
+    vrrpVersion: integer().notNull().default(3),
+    /** Default interface, members can override it. */
+    interface: text().notNull(),
+    advertInt: integer().notNull().default(1),
+    preempt: bool().notNull().default(true),
+    preemptDelay: integer().notNull().default(0),
+    /** Unicast between members instead of multicast. */
+    unicast: bool().notNull().default(true),
+    /** Encrypted VRRPv2 password, null for none. */
+    authPassEnc: text(),
+    virtualIps: text({ mode: "json" }).$type<VirtualIp[]>().notNull(),
+    // Runtime state, worked out from the members' reports
+    masterNodeId: text(),
+    masterSince: ts(),
+    splitBrainSince: ts(),
+    splitBrainNotified: bool().notNull().default(false),
+    noMasterSince: ts(),
+    noMasterNotified: bool().notNull().default(false),
+    createdAt: ts().notNull().default(now),
+    updatedAt: ts().notNull().default(now),
+  },
+  (t) => [index("vrrp_instances_cluster_idx").on(t.clusterId)],
+);
+
+export const instanceMembers = sqliteTable(
+  "instance_members",
+  {
+    instanceId: text()
+      .notNull()
+      .references(() => vrrpInstances.id, { onDelete: "cascade" }),
+    nodeId: text()
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    priority: integer().notNull(),
+    /** Overrides the instance interface on this node. */
+    interface: text(),
+    initialState: text().$type<"MASTER" | "BACKUP">().notNull().default("BACKUP"),
+    // Last reported state on this node
+    state: text().$type<VrrpState>(),
+    reportedPriority: integer(),
+    stateSince: ts(),
+    maintenance: bool().notNull().default(false),
+    holdsVips: bool().notNull().default(false),
+    reportedAt: ts(),
+  },
+  (t) => [primaryKey({ columns: [t.instanceId, t.nodeId] })],
+);
+
+/** A health check, shared by the VIPs of a cluster that use it. */
+export const checks = sqliteTable("checks", {
+  id: uuid(),
+  clusterId: text()
+    .notNull()
+    .references(() => clusters.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  /** Id used in the config, unique per cluster. */
+  key: text().notNull(),
+  params: text({ mode: "json" }).$type<CheckParams>().notNull(),
+  intervalSec: integer().notNull().default(2),
+  timeoutSec: integer().notNull().default(2),
+  fall: integer().notNull().default(2),
+  rise: integer().notNull().default(2),
+  weight: integer().notNull().default(0),
+  createdAt: ts().notNull().default(now),
+  updatedAt: ts().notNull().default(now),
+});
+
+export const instanceChecks = sqliteTable(
+  "instance_checks",
+  {
+    instanceId: text()
+      .notNull()
+      .references(() => vrrpInstances.id, { onDelete: "cascade" }),
+    checkId: text()
+      .notNull()
+      .references(() => checks.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.instanceId, t.checkId] })],
+);
+
+/** Every state change of a member, for the timeline and charts. */
+export const stateTransitions = sqliteTable(
+  "state_transitions",
+  {
+    id: integer().primaryKey({ autoIncrement: true }),
+    instanceId: text()
+      .notNull()
+      .references(() => vrrpInstances.id, { onDelete: "cascade" }),
+    nodeId: text()
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    fromState: text(),
+    toState: text().notNull(),
+    at: ts().notNull().default(now),
+  },
+  (t) => [
+    index("state_transitions_instance_at_idx").on(t.instanceId, t.at),
+    index("state_transitions_at_idx").on(t.at),
+  ],
+);
+
+export const configRollouts = sqliteTable("config_rollouts", {
+  id: uuid(),
+  clusterId: text()
+    .notNull()
+    .references(() => clusters.id, { onDelete: "cascade" }),
+  status: text().$type<"running" | "succeeded" | "failed">().notNull().default("running"),
+  error: text(),
+  startedAt: ts().notNull().default(now),
+  finishedAt: ts(),
+});
+
+export type RolloutNodeStatus = "pending" | "applying" | "applied" | "unchanged" | "failed" | "rolled_back" | "skipped";
+
+export const configRolloutNodes = sqliteTable(
+  "config_rollout_nodes",
+  {
+    rolloutId: text()
+      .notNull()
+      .references(() => configRollouts.id, { onDelete: "cascade" }),
+    nodeId: text()
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    position: integer().notNull(),
+    status: text().$type<RolloutNodeStatus>().notNull().default("pending"),
+    commandId: text(),
+    hash: text(),
+    error: text(),
+    output: text({ mode: "json" }).$type<string[]>(),
+    startedAt: ts(),
+    finishedAt: ts(),
+  },
+  (t) => [primaryKey({ columns: [t.rolloutId, t.nodeId] })],
 );
