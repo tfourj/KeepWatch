@@ -29,6 +29,7 @@ export type ConfigMode = "managed" | "monitor";
 export type NodeMember = {
   instanceId: string;
   name: string;
+  service: string | null;
   priority: number;
   state: VrrpState | null;
   maintenance: boolean;

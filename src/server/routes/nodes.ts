@@ -30,6 +30,7 @@ export function serializeNode(node: NodeRow) {
     .select({
       instanceId: instanceMembers.instanceId,
       name: vrrpInstances.name,
+      service: vrrpInstances.service,
       priority: instanceMembers.priority,
       state: instanceMembers.state,
       maintenance: instanceMembers.maintenance,

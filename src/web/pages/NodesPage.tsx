@@ -283,7 +283,7 @@ function NodeCard({
           <ul className="grid gap-1.5 border-t pt-3">
             {node.members.map((m) => (
               <li key={m.instanceId} className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium">{m.name}</span>
+                <span className="truncate font-medium">{m.service ?? m.name}</span>
                 <span className="flex items-center gap-2">
                   <span className="text-muted-foreground font-mono text-xs">prio {m.priority}</span>
                   <ToneBadge tone={stateTone(m.state, m.maintenance)}>{stateLabel(m.state, m.maintenance)}</ToneBadge>

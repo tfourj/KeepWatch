@@ -135,6 +135,7 @@ function serializeNode(n: DemoNode) {
       .map((m) => ({
         instanceId: v.id,
         name: v.name,
+        service: v.service,
         priority: m.priority,
         state: m.state,
         maintenance: m.maintenance,
