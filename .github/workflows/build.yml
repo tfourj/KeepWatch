@@ -1,0 +1,123 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: App
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run build
+
+  agent:
+    name: Agent
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - name: Check install scripts
+        run: for f in install.sh uninstall.sh; do sh -n "$f"; done
+
+  image:
+    name: Docker image
+    needs: [app, agent]
+    # Pull requests only run the checks, the image is published from main, tags and manual runs.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Tags to find the release version of this commit.
+          fetch-depth: 0
+      # Builds of a commit that carries a stable vX.Y.Z tag are releases and show the version, others the commit.
+      - name: Read build info
+        id: build
+        run: |
+          tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' 2>/dev/null || true)"
+          release=false
+          if [ -n "$tag" ] && git tag --points-at HEAD | grep -qx "$tag"; then release=true; fi
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "version: ${tag:-none}, release build: $release"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/keepwatch
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            KEEPWATCH_VERSION=${{ steps.build.outputs.version }}
+            KEEPWATCH_COMMIT=${{ github.sha }}
+            KEEPWATCH_RELEASE=${{ steps.build.outputs.release }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: Server release
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      # Stable server releases are the repository's latest release. Agent releases never are.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev="$(git tag --list 'v[0-9]*' --sort=-v:refname | grep -v -- '-' | grep -vx "$GITHUB_REF_NAME" | head -n1 || true)"
+          set -- --title "KeepWatch $GITHUB_REF_NAME" --generate-notes
+          [ -n "$prev" ] && set -- "$@" --notes-start-tag "$prev"
+          case "$GITHUB_REF_NAME" in
+            *-*) set -- "$@" --prerelease --latest=false ;;
+            *) set -- "$@" --latest ;;
+          esac
+          gh release create "$GITHUB_REF_NAME" "$@"
