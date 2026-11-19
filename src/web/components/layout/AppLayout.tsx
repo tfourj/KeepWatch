@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { DEFAULT_TIME_PREFERENCES } from "@shared/time";
 import { Brand } from "@/components/Brand";
+import { DemoBanner } from "@/components/DemoBanner";
 import { GitHubIcon } from "@/components/GitHubIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -196,6 +197,7 @@ export function AppLayout() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {__DEMO__ && <DemoBanner />}
         <header className="bg-background/80 sticky top-0 z-20 flex h-14 items-center gap-2 border-b px-4 backdrop-blur md:hidden">
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Open navigation">
             <Menu className="size-5" />

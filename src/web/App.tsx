@@ -26,7 +26,8 @@ export function App() {
   const location = useLocation();
   const setup = useQuery({
     queryKey: ["setup"],
-    queryFn: async () => (await fetch("/api/setup")).json() as Promise<{ needsSetup: boolean }>,
+    queryFn: async () =>
+      __DEMO__ ? { needsSetup: false } : ((await (await fetch("/api/setup")).json()) as { needsSetup: boolean }),
     staleTime: Infinity,
   });
   const session = authClient.useSession();
