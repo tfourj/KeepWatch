@@ -50,6 +50,7 @@ version, os, arch, hostname, interfaces, update state and `auto_update`.
 | Column              | Notes                                                    |
 | ------------------- | -------------------------------------------------------- |
 | `name`, `vrid`, `vrrp_version`, `interface`, `advert_int` |                |
+| `service`           | Name of the service behind the addresses, UI only        |
 | `preempt`, `preempt_delay`, `unicast` |                                        |
 | `auth_pass_enc`     | *encrypted* VRRPv2 password, never sent to the browser   |
 | `virtual_ips`       | JSON `[{ address, prefix, dev? }]`                       |

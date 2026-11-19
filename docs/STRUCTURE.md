@@ -11,6 +11,7 @@ KeepWatch/
 │   ├── shared/                      Code used by both server and UI
 │   │   ├── keepalived.ts            Spec sent to agents, validation, reported status
 │   │   ├── clusters.ts              VIP, check and cluster input and their rules
+│   │   ├── check-presets.ts         Ready-made health checks for common services
 │   │   ├── events.ts                Event types, labels, severities, template variables
 │   │   ├── channels.ts              Notification channel types and their config fields
 │   │   ├── templates.ts             Template rendering and example events
@@ -34,7 +35,7 @@ KeepWatch/
 │       ├── components/              Layout, shared components, shadcn/ui primitives
 │       ├── demo/                    In-browser fake API for the demo build
 │       ├── lib/                     API client, auth client, types, formatting, theme
-│       └── pages/                   Dashboard, Clusters, Nodes, Events, Channels, Logs, Settings, auth
+│       └── pages/                   Dashboard, Services, Clusters, Nodes, Events, Channels, Logs, Settings, auth
 ├── agent/                           Go agent with its install and uninstall scripts
 │   ├── internal/core/               Pairing, connection, signed commands, sealed values, updates, service file
 │   ├── internal/keepalived/         Spec, config rendering, apply and rollback, status, checks, import

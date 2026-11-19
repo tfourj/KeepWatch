@@ -18,6 +18,7 @@
 ## Features
 
 - Virtual IPs, members and priorities edited in the browser, rendered into keepalived configs on each node
+- Live view of each service, for example AdGuard Home on three nodes, showing which node is active
 - Every change shown as a diff, tested by keepalived, applied backups first and rolled back on failure
 - Lightweight Linux agent with one-line install, no open ports or certificates
 - Installs keepalived, or takes over or just watches an existing setup
@@ -36,10 +37,10 @@
 | Dashboard | Clusters |
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Clusters](docs/screenshots/clusters.png) |
-| **Nodes** | **Events** |
-| ![Nodes](docs/screenshots/nodes.png) | ![Events](docs/screenshots/events.png) |
-| **Channels** | |
-| ![Channels](docs/screenshots/channels.png) | |
+| **Services** | **Nodes** |
+| ![Services](docs/screenshots/services.png) | ![Nodes](docs/screenshots/nodes.png) |
+| **Events** | **Channels** |
+| ![Events](docs/screenshots/events.png) | ![Channels](docs/screenshots/channels.png) |
 
 ## Tech Stack
 

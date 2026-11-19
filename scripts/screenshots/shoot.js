@@ -5,6 +5,7 @@ const BASE = "http://localhost:4321";
 const THEME = process.env.THEME || "dark";
 const SHOTS = [
   { name: "dashboard", path: "/" },
+  { name: "services", path: "/services" },
   { name: "clusters", path: "/clusters" },
   { name: "nodes", path: "/nodes" },
   { name: "events", path: "/events" },

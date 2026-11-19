@@ -69,7 +69,8 @@ If `keepwatch.conf` is edited by hand, the node shows **Edited outside KeepWatch
 
 ## VIPs
 
-Each VIP is one VRRP instance: its addresses, VRID, interface and members with a priority each. The member with the
+Each VIP is one VRRP instance: its addresses, VRID, interface and members with a priority each. Give it the name of
+the service behind it, for example **AdGuard Home** on three nodes, and it is shown by that name everywhere. The member with the
 highest priority holds the addresses. With **Unicast** on, members send adverts to each other's addresses on the
 interface instead of multicast. IPv6 addresses need VRRP version 3; passwords exist only in version 2.
 
@@ -79,9 +80,17 @@ is off.
 **Fail over** in a VIP menu puts the current master into maintenance for that VIP, so a backup takes over. It stays
 there until you choose **End maintenance**. **Maintenance** in a node menu does the same for every VIP on that node.
 
+## Services
+
+**Services** shows each VIP as a live diagram: clients reach the address, which points at the node that holds it.
+The active path is animated, standby nodes are dashed, and nodes in FAULT, maintenance or offline are marked. A node
+that takes over flashes. The view updates every 2 seconds and shows where keepalived put the address, not measured
+traffic.
+
 ## Health checks
 
-Health checks belong to a cluster and are picked per VIP:
+Health checks belong to a cluster and are picked per VIP. **Start from** fills in a check for a common service,
+such as AdGuard Home, Pi-hole, nginx, HAProxy or PostgreSQL:
 
 | Type          | Checks                                                       |
 | ------------- | ------------------------------------------------------------ |
