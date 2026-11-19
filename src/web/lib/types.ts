@@ -82,6 +82,8 @@ export type Vip = {
   id: string;
   clusterId: string;
   name: string;
+  /** What runs behind the addresses, for example "AdGuard Home". */
+  service: string | null;
   vrid: number;
   vrrpVersion: 2 | 3;
   interface: string;

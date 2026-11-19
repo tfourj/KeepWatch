@@ -139,9 +139,9 @@ function VipTable({ cluster, nodes, onEdit }: { cluster: Cluster; nodes: KeepNod
         {cluster.instances.map((vip) => (
           <TableRow key={vip.id}>
             <TableCell>
-              <div className="font-medium">{vip.name}</div>
+              <div className="font-medium">{vip.service ?? vip.name}</div>
               <div className="text-muted-foreground font-mono text-xs">
-                VRID {vip.vrid} · {vip.interface} · v{vip.vrrpVersion}
+                {vip.service && `${vip.name} · `}VRID {vip.vrid} · {vip.interface} · v{vip.vrrpVersion}
               </div>
             </TableCell>
             <TableCell className="font-mono text-xs">{vipAddresses(vip)}</TableCell>

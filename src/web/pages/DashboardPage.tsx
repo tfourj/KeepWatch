@@ -137,7 +137,7 @@ export function DashboardPage() {
               <div key={vip.id} className="grid gap-1.5 rounded-md border p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="font-medium">{vip.name}</span>
+                    <span className="font-medium">{vip.service ?? vip.name}</span>
                     <span className="text-muted-foreground"> · {cluster.name}</span>
                   </div>
                   <span className="font-mono text-xs">{vipAddresses(vip)}</span>

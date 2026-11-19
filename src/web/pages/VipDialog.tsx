@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
+import { SERVICE_NAMES } from "@shared/check-presets";
 import { instanceInputProblems, instanceInputSchema } from "@shared/clusters";
 import { Field, SwitchRow } from "@/components/common";
 import { MultiCheck } from "@/components/MultiCheck";
@@ -17,6 +18,7 @@ import type { Cluster, KeepNode, Vip } from "@/lib/types";
 type MemberForm = { included: boolean; priority: number; interface: string; master: boolean };
 
 type Form = {
+  service: string;
   name: string;
   vrid: number;
   vrrpVersion: 2 | 3;
@@ -31,6 +33,21 @@ type Form = {
   members: Record<string, MemberForm>;
   checkIds: string[];
 };
+
+/** VI_adguard_home for "AdGuard Home", numbered when the cluster has it already. */
+function vipName(service: string, cluster: Cluster) {
+  const slug = service
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 24);
+  const base = slug ? `VI_${slug}` : `VI_${cluster.instances.length + 1}`;
+  const taken = new Set(cluster.instances.map((i) => i.name));
+  for (let n = 1; ; n++) {
+    const name = n === 1 ? base : `${base}_${n}`;
+    if (!taken.has(name)) return name;
+  }
+}
 
 function nextVrid(cluster: Cluster) {
   const used = new Set(cluster.instances.map((i) => i.vrid));
@@ -56,6 +73,7 @@ function toForm(cluster: Cluster, nodes: KeepNode[], vip?: Vip): Form {
       : { included: !vip, priority: 150 - index * 10, interface: "", master: !vip && index === 0 };
   });
   return {
+    service: vip?.service ?? "",
     name: vip?.name ?? `VI_${cluster.instances.length + 1}`,
     vrid: vip?.vrid ?? nextVrid(cluster),
     vrrpVersion: vip?.vrrpVersion ?? 3,
@@ -77,6 +95,7 @@ function toBody(form: Form, vip?: Vip) {
   const authPass = clear ? (vip?.hasPassword ? null : undefined) : form.password || undefined;
   return {
     name: form.name.trim(),
+    service: form.service.trim() || null,
     vrid: form.vrid,
     vrrpVersion: form.vrrpVersion,
     interface: form.interface.trim(),
@@ -125,9 +144,11 @@ export function VipDialog({
   const clusterNodes = useMemo(() => nodes.filter((n) => n.clusterId === cluster.id), [nodes, cluster.id]);
   const [form, setForm] = useState<Form>(() => toForm(cluster, clusterNodes, vip));
   const [touched, setTouched] = useState(false);
+  const [nameEdited, setNameEdited] = useState(false);
   useOnOpen(open, () => {
     setForm(toForm(cluster, clusterNodes, vip));
     setTouched(false);
+    setNameEdited(false);
   });
 
   const save = useAction(
@@ -161,8 +182,35 @@ export function VipDialog({
           }}
         >
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Name" htmlFor="vip-name" className="sm:col-span-2">
-              <Input id="vip-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Field label="Service" htmlFor="vip-service" className="sm:col-span-3">
+              <Input
+                id="vip-service"
+                list="vip-services"
+                placeholder="AdGuard Home"
+                value={form.service}
+                onChange={(e) => {
+                  const service = e.target.value;
+                  // A new VIP is named after its service until the name is edited by hand.
+                  const name = !vip && !nameEdited ? vipName(service, cluster) : form.name;
+                  setForm({ ...form, service, name });
+                }}
+              />
+              <datalist id="vip-services">
+                {SERVICE_NAMES.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label="Name in the config" htmlFor="vip-name" className="sm:col-span-2">
+              <Input
+                id="vip-name"
+                className="font-mono"
+                value={form.name}
+                onChange={(e) => {
+                  setNameEdited(true);
+                  setForm({ ...form, name: e.target.value });
+                }}
+              />
             </Field>
             <Field label="VRID" htmlFor="vip-vrid">
               <Input

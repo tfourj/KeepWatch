@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CHECK_PRESETS } from "@shared/check-presets";
 import { checkInputSchema } from "@shared/clusters";
 import { CHECK_TYPE_LABELS, CHECK_TYPES, SCRIPT_DIR, type CheckParams, type CheckType } from "@shared/keepalived";
 import { Field, SwitchRow } from "@/components/common";
@@ -57,6 +58,8 @@ function toForm(check?: Check): Form {
     weight: check?.weight ?? 0,
   };
 }
+
+const DEFAULT_TIMING = { intervalSec: 2, timeoutSec: 2, fall: 2, rise: 2 };
 
 function params(f: Form): CheckParams {
   switch (f.type) {
@@ -154,6 +157,30 @@ export function CheckDialog({
             onOpenChange(false);
           }}
         >
+          {!check && (
+            <Field label="Start from">
+              <Select
+                value=""
+                onValueChange={(id) => {
+                  const p = CHECK_PRESETS.find((x) => x.id === id);
+                  if (!p) return;
+                  setKeyEdited(true);
+                  setForm({ ...toForm({ ...p, id: "", clusterId: "", ...DEFAULT_TIMING }), name: p.name });
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="A common service" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHECK_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.service}: {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor="check-name">
               <Input
