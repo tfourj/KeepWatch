@@ -11,6 +11,7 @@ import { EventsPage } from "@/pages/EventsPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { LogsPage } from "@/pages/LogsPage";
 import { NodesPage } from "@/pages/NodesPage";
+import { ServicesPage } from "@/pages/ServicesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SetupPage } from "@/pages/SetupPage";
 
@@ -50,6 +51,7 @@ export function App() {
       <Route path="/login" element={signedIn ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route element={signedIn ? <AppLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<DashboardPage />} />
+        <Route path="services" element={<ServicesPage />} />
         <Route path="clusters" element={<ClustersPage />} />
         <Route path="nodes" element={<NodesPage />} />
         <Route path="events" element={<EventsPage />} />

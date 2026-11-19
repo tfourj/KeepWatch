@@ -114,3 +114,38 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Traffic moving along the active path of a service flow. */
+@keyframes flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+/* A node that just took over a VIP. */
+@keyframes takeover {
+  from {
+    stroke-opacity: 0.9;
+    stroke-width: 6;
+  }
+  to {
+    stroke-opacity: 0;
+    stroke-width: 18;
+  }
+}
+
+.flow-active {
+  stroke-dasharray: 4 10;
+  animation: flow 0.9s linear infinite;
+}
+
+.flow-takeover {
+  animation: takeover 1.2s ease-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-active,
+  .flow-takeover {
+    animation: none;
+  }
+}

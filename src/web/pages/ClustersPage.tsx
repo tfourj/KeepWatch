@@ -46,7 +46,7 @@ function checkTarget(check: Check) {
   return p.path;
 }
 
-function VipMenu({
+export function VipMenu({
   cluster,
   vip,
   nodes,
@@ -55,7 +55,8 @@ function VipMenu({
   cluster: Cluster;
   vip: Vip;
   nodes: KeepNode[];
-  onEdit: () => void;
+  /** Left out where the VIP cannot be edited, like the Services page. */
+  onEdit?: () => void;
 }) {
   const maintenance = useAction(
     (body: { nodeId?: string; on: boolean }) =>
@@ -68,20 +69,25 @@ function VipMenu({
   });
   const master = nodes.find((n) => n.id === vip.masterNodeId);
   const inMaintenance = vip.members.filter((m) => m.maintenance);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label={`Actions for ${vip.name}`}>
           <MoreHorizontal />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={onEdit}>
-          <Pencil />
-          Edit
-        </DropdownMenuItem>
+        {onEdit && (
+          <DropdownMenuItem onClick={onEdit}>
+            <Pencil />
+            Edit
+          </DropdownMenuItem>
+        )}
         {master && master.configMode === "managed" && (
           <ConfirmAction
+            onClosed={closeMenu}
             trigger={
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <ArrowRightLeft />
@@ -105,6 +111,7 @@ function VipMenu({
         ))}
         <DropdownMenuSeparator />
         <ConfirmAction
+          onClosed={closeMenu}
           trigger={
             <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
               <Trash2 />
@@ -248,6 +255,8 @@ function ClusterCard({
   });
   const members = nodes.filter((n) => n.clusterId === cluster.id);
   const behind = members.filter((n) => n.behind || n.migrateInstances?.length).length;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   return (
     <Card>
       <CardHeader>
@@ -261,7 +270,7 @@ function ClusterCard({
             <Upload />
             Apply
           </Button>
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={`Actions for ${cluster.name}`}>
                 <MoreHorizontal />
@@ -282,6 +291,7 @@ function ClusterCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <ConfirmAction
+                onClosed={closeMenu}
                 trigger={
                   <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
                     <Trash2 />

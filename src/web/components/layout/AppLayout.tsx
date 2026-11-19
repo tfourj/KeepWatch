@@ -14,6 +14,7 @@ import {
   Server,
   Settings,
   Sun,
+  Waypoints,
 } from "lucide-react";
 import { DEFAULT_TIME_PREFERENCES } from "@shared/time";
 import { Brand } from "@/components/Brand";
@@ -40,6 +41,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/services", label: "Services", icon: Waypoints },
   { to: "/clusters", label: "Clusters", icon: Network },
   { to: "/nodes", label: "Nodes", icon: Server },
   { to: "/events", label: "Events", icon: Activity },
