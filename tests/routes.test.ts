@@ -100,8 +100,16 @@ describe("cluster API", () => {
 });
 
 describe("node API", () => {
+  test("a node needs an existing cluster", async () => {
+    expect((await call("POST", "/nodes", { name: "lonely" })).status).toBe(400);
+    expect((await call("POST", "/nodes", { name: "lost", clusterId: "nope" })).status).toBe(400);
+    const { a } = await setup();
+    expect((await call("PATCH", `/nodes/${a.id}`, { clusterId: null })).status).toBe(400);
+  });
+
   test("install commands use the one-time token and never list agent keys", async () => {
-    const created = await call("POST", "/nodes", { name: "lb9" });
+    const { cluster } = await setup();
+    const created = await call("POST", "/nodes", { name: "lb9", clusterId: cluster.id });
     expect(created.status).toBe(201);
     expect(created.json.enrollment.command).toMatch(/install\.sh \| sh -s -- --server \S+ --token \S{40,}/);
     const list = await call("GET", "/nodes");

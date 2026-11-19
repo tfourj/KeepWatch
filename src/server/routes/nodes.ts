@@ -73,11 +73,12 @@ function findNode(id: string) {
 const nodeInput = z.object({
   name: z.string().trim().min(1).max(64),
   description: z.string().trim().max(300).nullable().default(null),
-  clusterId: z.string().max(64).nullable().default(null),
+  /** Every node belongs to a cluster: VIPs, imports and applies all work per cluster. */
+  clusterId: z.string({ error: "Pick a cluster" }).min(1, "Pick a cluster").max(64),
 });
 
-function checkCluster(clusterId: string | null | undefined) {
-  if (!clusterId) return true;
+function checkCluster(clusterId: string | undefined) {
+  if (clusterId === undefined) return true;
   return !!db.select().from(clusters).where(eq(clusters.id, clusterId)).get();
 }
 
