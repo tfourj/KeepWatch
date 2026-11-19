@@ -343,3 +343,53 @@ export const configRolloutNodes = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.rolloutId, t.nodeId] })],
 );
+
+export const channels = sqliteTable("channels", {
+  id: uuid(),
+  name: text().notNull(),
+  type: text().notNull(),
+  /** Encrypted provider config, never sent to the browser in full. */
+  configEnc: text().notNull(),
+  enabled: bool().notNull().default(true),
+  events: text({ mode: "json" }).$type<string[]>().notNull(),
+  /** Only events of these clusters, null for all. */
+  clusterIds: text({ mode: "json" }).$type<string[] | null>(),
+  /** Only events of these nodes, null for all. */
+  nodeIds: text({ mode: "json" }).$type<string[] | null>(),
+  titleTemplate: text(),
+  bodyTemplate: text(),
+  createdAt: ts().notNull().default(now),
+  updatedAt: ts().notNull().default(now),
+});
+
+export const deliveries = sqliteTable(
+  "deliveries",
+  {
+    id: integer().primaryKey({ autoIncrement: true }),
+    eventId: integer()
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    channelId: text()
+      .notNull()
+      .references(() => channels.id, { onDelete: "cascade" }),
+    status: text().notNull().default("pending"),
+    attempts: integer().notNull().default(0),
+    nextAttemptAt: ts(),
+    lastError: text(),
+    deliveredAt: ts(),
+    createdAt: ts().notNull().default(now),
+  },
+  (t) => [index("deliveries_status_idx").on(t.status, t.nextAttemptAt), index("deliveries_event_idx").on(t.eventId)],
+);
+
+export const deliveryAttempts = sqliteTable("delivery_attempts", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  deliveryId: integer()
+    .notNull()
+    .references(() => deliveries.id, { onDelete: "cascade" }),
+  attempt: integer().notNull(),
+  ok: bool().notNull(),
+  error: text(),
+  durationMs: integer(),
+  createdAt: ts().notNull().default(now),
+});

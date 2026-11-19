@@ -50,6 +50,13 @@
       "when": 1795104335718,
       "tag": "0006_node_migrate_instances",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795104555678,
+      "tag": "0007_notifications",
+      "breakpoints": true
     }
   ]
 }
