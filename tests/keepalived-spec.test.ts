@@ -33,7 +33,8 @@ describe("keepalived spec", () => {
 
   test("keeps script checks in the scripts directory", () => {
     const check = (path: string) => ({ id: "c1", params: { type: "script", path } });
-    expect(keepalivedSpecSchema.safeParse({ version: 1, instances: [], checks: [check("/tmp/x.sh")] }).success).toBe(false);
+    const outside = { version: 1, instances: [], checks: [check("/tmp/x.sh")] };
+    expect(keepalivedSpecSchema.safeParse(outside).success).toBe(false);
     const escape = check("/etc/keepwatch/scripts/../../bin/sh");
     expect(keepalivedSpecSchema.safeParse({ version: 1, instances: [], checks: [escape] }).success).toBe(false);
     const ok = check("/etc/keepwatch/scripts/db.sh");

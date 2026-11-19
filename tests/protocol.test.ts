@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { generateSigningKey, signMessage, verifyMessage } from "../src/server/crypto/signing";
-import { agentMessageSchema, commandMessage, helloMessage, signCommand, verifyHello } from "../src/server/agents/protocol";
+import { agentMessageSchema, commandMessage, helloMessage } from "../src/server/agents/protocol";
+import { signCommand, verifyHello } from "../src/server/agents/protocol";
 
 describe("agent protocol", () => {
   test("hello signatures expire and bind the nonce", () => {

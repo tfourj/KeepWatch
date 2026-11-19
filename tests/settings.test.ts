@@ -17,6 +17,7 @@ describe("settings", () => {
   });
 
   test("rejects unknown timezones", () => {
-    expect(() => updateSettings({ time: { timezone: "Mars/Base", timeFormat: "auto", timeStyle: "relative" } })).toThrow();
+    const time = { timezone: "Mars/Base", timeFormat: "auto", timeStyle: "relative" } as const;
+    expect(() => updateSettings({ time })).toThrow();
   });
 });
