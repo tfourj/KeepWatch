@@ -1,0 +1,71 @@
+name: Agent release
+
+on:
+  push:
+    tags: ["agent-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Tags and history for the release notes.
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+      - name: Check version tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#agent-v}"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Agent release tags must look like agent-vX.Y.Z" >&2
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - name: Test
+        working-directory: agent
+        run: go test ./...
+      - name: Build agents
+        working-directory: agent
+        run: |
+          mkdir -p ../dist
+          for target in amd64:amd64 arm64:arm64 arm:armv7; do
+            arch="${target%%:*}"; name="${target##*:}"
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch GOARM=7 go build -trimpath \
+              -ldflags "-s -w -X main.version=${VERSION}" -o ../dist/keepwatch-agent-linux-$name ./cmd/keepwatch-agent
+          done
+          ../dist/keepwatch-agent-linux-amd64 version
+      - name: Package release files
+        working-directory: dist
+        run: |
+          cp ../agent/install.sh ../agent/uninstall.sh .
+          printf '{"version":"%s","protocol_version":1}\n' "$VERSION" > agent-release.json
+          for f in keepwatch-agent-linux-amd64 keepwatch-agent-linux-arm64 keepwatch-agent-linux-armv7 \
+            agent-release.json install.sh uninstall.sh; do
+            sha256sum "$f" > "$f.sha256"
+          done
+      - name: Write release notes
+        run: |
+          # Agent changes since the previous agent release, or all of them for the first one.
+          prev="$(git tag --list 'agent-v[0-9]*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -n1 || true)"
+          range="${prev:+$prev..}HEAD"
+          changes="$(git log --no-merges --format='- %s (%h)' "$range" -- agent)"
+          {
+            echo "## Agent changes${prev:+ since $prev}"
+            echo
+            echo "${changes:-No agent code changes.}"
+          } > release-notes.md
+          cat release-notes.md
+      # Never marked latest, that is the server release. Installs, agent updates and the server's update check
+      # look up the newest agent-vX.Y.Z release instead.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Agent v$VERSION" --notes-file release-notes.md --latest=false
