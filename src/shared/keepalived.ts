@@ -18,8 +18,11 @@ export const HOSTNAME_RE = new RegExp(`^(?=.{1,253}$)${LABEL}(?:\\.${LABEL})*$`)
 /** Custom check scripts must live here, owned by root and not writable by others. */
 export const SCRIPT_DIR = "/etc/keepwatch/scripts/";
 export const SCRIPT_RE = /^\/etc\/keepwatch\/scripts\/[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/;
-/** VRRPv2 simple passwords are at most 8 characters. */
-export const VRRP_PASS_MAX = 8;
+/**
+ * VRRPv2 simple passwords: at most 8 characters, printable ASCII without spaces, quotes, braces, backslashes or the
+ * comment marks # and !. The agent checks the same rule after opening the sealed value.
+ */
+export const VRRP_PASS_RE = /^[A-Za-z0-9$%&()*+,\-./:;<=>?@[\]^_|~]{1,8}$/;
 
 export const ip = z.union([z.ipv4(), z.ipv6()]);
 const host = z.union([z.ipv4(), z.ipv6(), z.string().regex(HOSTNAME_RE, "Invalid host name")]);
