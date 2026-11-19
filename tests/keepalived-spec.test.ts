@@ -53,3 +53,14 @@ describe("keepalived spec", () => {
     expect(specProblems(twice)).toContain("VRID 51 is used twice on eth0");
   });
 });
+
+describe("check presets", () => {
+  test("every preset is a valid check", async () => {
+    const { CHECK_PRESETS } = await import("../src/shared/check-presets");
+    const { checkInputSchema } = await import("../src/shared/clusters");
+    for (const p of CHECK_PRESETS) {
+      const parsed = checkInputSchema.safeParse({ name: p.name, key: p.key, params: p.params, weight: p.weight });
+      expect(parsed.success).toBe(true);
+    }
+  });
+});
