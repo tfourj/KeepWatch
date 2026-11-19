@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
 import {
   ArrowRightLeft,
   HeartPulse,
@@ -373,6 +374,16 @@ export function ClustersPage() {
   });
   const [dialog, setDialog] = useState<{ cluster?: Cluster } | null>(null);
   const [applying, setApplying] = useState<Cluster | null>(null);
+  const [params, setParams] = useSearchParams();
+
+  // Links like /clusters?apply=<id> (from a node with unapplied changes) open that cluster's apply preview.
+  const applyId = params.get("apply");
+  useEffect(() => {
+    if (!applyId || isPending) return;
+    const cluster = clusters.find((c) => c.id === applyId);
+    if (cluster) setApplying(cluster);
+    setParams({}, { replace: true });
+  }, [applyId, isPending, clusters, setParams]);
 
   return (
     <>

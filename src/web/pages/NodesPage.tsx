@@ -12,8 +12,10 @@ import {
   Settings2,
   Trash2,
   Unlink,
+  Upload,
   Wrench,
 } from "lucide-react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { EmptyState, PageHeader, ToneBadge } from "@/components/common";
 import { ConfirmAction } from "@/components/confirm";
@@ -278,6 +280,14 @@ function NodeCard({
               </Tooltip>
             ))}
           </div>
+        )}
+        {(node.behind || node.migrateInstances?.length) && node.clusterId && (
+          <Button variant="outline" size="sm" className="justify-self-start" asChild>
+            <Link to={`/clusters?apply=${node.clusterId}`}>
+              <Upload />
+              Apply {node.cluster?.name}
+            </Link>
+          </Button>
         )}
         {node.members.length > 0 && (
           <ul className="grid gap-1.5 border-t pt-3">
