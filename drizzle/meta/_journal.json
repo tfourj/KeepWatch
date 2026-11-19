@@ -15,6 +15,20 @@
       "when": 1795103012978,
       "tag": "0001_events",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795103042090,
+      "tag": "0002_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795103042278,
+      "tag": "0003_single_user_trigger",
+      "breakpoints": true
     }
   ]
 }
