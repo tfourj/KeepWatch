@@ -10,6 +10,7 @@ import {
   Monitor,
   Moon,
   Network,
+  ScrollText,
   Server,
   Settings,
   Sun,
@@ -42,6 +43,7 @@ const NAV = [
   { to: "/nodes", label: "Nodes", icon: Server },
   { to: "/events", label: "Events", icon: Activity },
   { to: "/channels", label: "Channels", icon: Bell },
+  { to: "/logs", label: "Logs", icon: ScrollText },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

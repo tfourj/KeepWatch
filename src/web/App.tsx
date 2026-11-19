@@ -9,6 +9,7 @@ import { ClustersPage } from "@/pages/ClustersPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { EventsPage } from "@/pages/EventsPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { LogsPage } from "@/pages/LogsPage";
 import { NodesPage } from "@/pages/NodesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SetupPage } from "@/pages/SetupPage";
@@ -52,6 +53,7 @@ export function App() {
         <Route path="nodes" element={<NodesPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="channels" element={<ChannelsPage />} />
+        <Route path="logs" element={<LogsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
