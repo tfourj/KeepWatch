@@ -259,8 +259,8 @@ function KeepalivedStep({ node, onDone }: { node: KeepNode; onDone: (imported: b
       </div>
       {!detected.configTest && (
         <p className="text-warning text-sm">
-          keepalived {detected.version} cannot test a config before using it. Update to 2.0.11 or newer to let
-          KeepWatch manage it.
+          keepalived {detected.version} cannot test a config before using it. Update to 2.0.11 or newer to let KeepWatch
+          manage it.
         </p>
       )}
       {detected.conflict && <p className="text-warning text-sm">{detected.conflict}</p>}
@@ -359,10 +359,7 @@ export function NodeSetupDialog({
         </DialogHeader>
         <ol className="flex gap-4 text-xs">
           {STEPS.map((s, i) => (
-            <li
-              key={s.id}
-              className={cn("text-muted-foreground", s.id === step && "text-foreground font-medium")}
-            >
+            <li key={s.id} className={cn("text-muted-foreground", s.id === step && "text-foreground font-medium")}>
               {i + 1}. {s.label}
             </li>
           ))}

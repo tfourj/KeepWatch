@@ -28,7 +28,11 @@ export function NodeLogsDialog({ node, onClose }: { node: KeepNode | null; onClo
         ) : !data ? (
           <Loader2 className="text-muted-foreground mx-auto size-6 animate-spin" />
         ) : (
-          <pre className="bg-muted/50 max-h-[60vh] overflow-auto rounded-md border p-3 font-mono text-xs whitespace-pre-wrap">
+          <pre
+            className={
+              "bg-muted/50 max-h-[60vh] overflow-auto rounded-md border p-3 font-mono text-xs whitespace-pre-wrap"
+            }
+          >
             {data.log.trim() || "No log lines"}
           </pre>
         )}

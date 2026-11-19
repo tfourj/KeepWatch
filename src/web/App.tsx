@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { authClient } from "@/lib/auth-client";
 import { ChannelsPage } from "@/pages/ChannelsPage";
+import { ClustersPage } from "@/pages/ClustersPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { EventsPage } from "@/pages/EventsPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -47,6 +48,7 @@ export function App() {
       <Route path="/login" element={signedIn ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route element={signedIn ? <AppLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<DashboardPage />} />
+        <Route path="clusters" element={<ClustersPage />} />
         <Route path="nodes" element={<NodesPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="channels" element={<ChannelsPage />} />

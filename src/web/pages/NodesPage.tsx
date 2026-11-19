@@ -85,23 +85,22 @@ function NodeMenu({
 }) {
   const managed = node.configMode === "managed";
   const ready = !!node.agent?.connected;
-  const service = useAction(
-    (action: string) => api.post(`/nodes/${node.id}/service`, { action }),
-    { invalidate: INVALIDATE, success: "Done" },
-  );
-  const maintenance = useAction(
-    (on: boolean) => api.post(`/nodes/${node.id}/maintenance`, { on, instances: [] }),
-    { invalidate: INVALIDATE, success: (r) => (r ? "Maintenance changed" : null) },
-  );
+  const service = useAction((action: string) => api.post(`/nodes/${node.id}/service`, { action }), {
+    invalidate: INVALIDATE,
+    success: "Done",
+  });
+  const maintenance = useAction((on: boolean) => api.post(`/nodes/${node.id}/maintenance`, { on, instances: [] }), {
+    invalidate: INVALIDATE,
+    success: (r) => (r ? "Maintenance changed" : null),
+  });
   const update = useAction(() => api.post<UpdateCheck>(`/nodes/${node.id}/check-update`), {
     invalidate: INVALIDATE,
     success: (r) =>
       r.ok && r.status === "current" ? `Agent v${r.version} is up to date` : r.ok ? "Updating the agent" : null,
   });
-  const autoUpdate = useAction(
-    (enabled: boolean) => api.patch(`/nodes/${node.id}/auto-update`, { enabled }),
-    { invalidate: INVALIDATE },
-  );
+  const autoUpdate = useAction((enabled: boolean) => api.patch(`/nodes/${node.id}/auto-update`, { enabled }), {
+    invalidate: INVALIDATE,
+  });
   const unpair = useAction(() => api.post(`/nodes/${node.id}/unpair`), {
     invalidate: INVALIDATE,
     success: "Agent unpaired",
