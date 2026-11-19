@@ -36,6 +36,7 @@ export type DemoVip = {
   id: string;
   clusterId: string;
   name: string;
+  service: string | null;
   vrid: number;
   vrrpVersion: 2 | 3;
   interface: string;
@@ -144,6 +145,7 @@ export function generateDemoData(now = Date.now()): DemoData {
     node({ id: "n-pg2", name: "pg2", clusterId: "c-db", ip: "10.20.0.12", iface: "ens18", agentVersion: "1.1.4" }),
     node({ id: "n-pve1", name: "pve1", clusterId: "c-home", ip: "192.168.1.11", iface: "vmbr0" }),
     node({ id: "n-pve2", name: "pve2", clusterId: "c-home", ip: "192.168.1.12", iface: "vmbr0", drift: true }),
+    node({ id: "n-pve3", name: "pve3", clusterId: "c-home", ip: "192.168.1.13", iface: "vmbr0" }),
     node({
       id: "n-pi",
       name: "pi",
@@ -170,6 +172,7 @@ export function generateDemoData(now = Date.now()): DemoData {
       id: "v-web",
       clusterId: "c-edge",
       name: "VI_web",
+      service: "Website",
       vrid: 51,
       vrrpVersion: 3,
       interface: "eth0",
@@ -190,6 +193,7 @@ export function generateDemoData(now = Date.now()): DemoData {
       id: "v-api",
       clusterId: "c-edge",
       name: "VI_api",
+      service: "API",
       vrid: 52,
       vrrpVersion: 3,
       interface: "eth0",
@@ -206,6 +210,7 @@ export function generateDemoData(now = Date.now()): DemoData {
       id: "v-pg",
       clusterId: "c-db",
       name: "VI_pg",
+      service: "PostgreSQL",
       vrid: 61,
       vrrpVersion: 2,
       interface: "ens18",
@@ -221,7 +226,8 @@ export function generateDemoData(now = Date.now()): DemoData {
     {
       id: "v-dns",
       clusterId: "c-home",
-      name: "VI_dns",
+      name: "VI_adguard",
+      service: "AdGuard Home",
       vrid: 10,
       vrrpVersion: 3,
       interface: "vmbr0",
@@ -232,10 +238,11 @@ export function generateDemoData(now = Date.now()): DemoData {
       hasPassword: false,
       virtualIps: [{ address: "192.168.1.53", prefix: 24 }],
       members: [
-        member("n-pve2", 120, "MASTER", { stateSince: now - 2 * HOUR }),
         member("n-pve1", 150, "FAULT", { maintenance: true, stateSince: now - 2 * HOUR }),
+        member("n-pve2", 140, "MASTER", { stateSince: now - 2 * HOUR }),
+        member("n-pve3", 130, "BACKUP"),
       ],
-      checkIds: [],
+      checkIds: ["k-adguard", "k-dns"],
     },
   ];
   const checks: DemoCheck[] = [
@@ -276,6 +283,32 @@ export function generateDemoData(now = Date.now()): DemoData {
       weight: -60,
     },
   ];
+  checks.push(
+    {
+      id: "k-adguard",
+      clusterId: "c-home",
+      name: "AdGuard Home running",
+      key: "adguard",
+      params: { type: "process", process: "AdGuardHome" },
+      intervalSec: 2,
+      timeoutSec: 2,
+      fall: 2,
+      rise: 2,
+      weight: 0,
+    },
+    {
+      id: "k-dns",
+      clusterId: "c-home",
+      name: "DNS answers on port 53",
+      key: "dns",
+      params: { type: "tcp", host: "127.0.0.1", port: 53 },
+      intervalSec: 2,
+      timeoutSec: 2,
+      fall: 2,
+      rise: 2,
+      weight: 0,
+    },
+  );
   const channels: DemoChannel[] = [
     {
       id: "ch-phone",
@@ -366,8 +399,8 @@ export function generateDemoData(now = Date.now()): DemoData {
   add(
     "maintenance_on",
     now - 2 * HOUR,
-    "Maintenance on for VI_dns on pve1",
-    "pve1 gave up VI_dns (192.168.1.53) for maintenance",
+    "Maintenance on for VI_adguard on pve1",
+    "pve1 gave up VI_adguard (192.168.1.53) for maintenance",
     {
       nodeId: "n-pve1",
       clusterId: "c-home",
@@ -377,13 +410,13 @@ export function generateDemoData(now = Date.now()): DemoData {
   add(
     "failover",
     now - 2 * HOUR + 3000,
-    "VI_dns moved to pve2",
-    "VI_dns (192.168.1.53) moved from pve1 to pve2: pve1 is in maintenance",
+    "VI_adguard moved to pve2",
+    "VI_adguard (192.168.1.53) moved from pve1 to pve2: pve1 is in maintenance",
     {
       nodeId: "n-pve2",
       clusterId: "c-home",
       instanceId: "v-dns",
-      data: { cluster: "homelab", vip: "VI_dns", from: "pve1", to: "pve2", reason: "pve1 is in maintenance" },
+      data: { cluster: "homelab", vip: "VI_adguard", from: "pve1", to: "pve2", reason: "pve1 is in maintenance" },
     },
   );
   add(

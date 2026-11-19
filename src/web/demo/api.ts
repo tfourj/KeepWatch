@@ -239,6 +239,7 @@ function saveVip(clusterId: string, body: Body, existing?: DemoVip) {
     id: existing?.id ?? `v-${id()}`,
     clusterId,
     name: input.name,
+    service: input.service,
     vrid: input.vrid,
     vrrpVersion: input.vrrpVersion,
     interface: input.interface,
