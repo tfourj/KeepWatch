@@ -183,7 +183,10 @@ nodeRoutes.get("/:id/commands/:commandId", (c) => {
     .where(and(eq(commands.id, c.req.param("commandId")), eq(commands.agentId, agent.id)))
     .get();
   if (!row) return c.json({ error: "not found" }, 404);
-  return c.json({ status: row.status, error: row.error, output: agentHub.commandOutput(row.id) });
+  const expired = row.expiresAt.getTime() < Date.now() && ["pending", "sent"].includes(row.status);
+  const status = row.status === "acked" ? "done" : row.status === "failed" || expired ? "failed" : "running";
+  const error = expired ? "the agent did not finish in time" : row.error;
+  return c.json({ status, error, lines: agentHub.commandOutput(row.id) });
 });
 
 const modeSchema = z.object({ mode: z.enum(["managed", "monitor"]) });
