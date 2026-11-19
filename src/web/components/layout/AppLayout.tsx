@@ -9,6 +9,7 @@ import {
   Menu,
   Monitor,
   Moon,
+  Server,
   Settings,
   Sun,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/nodes", label: "Nodes", icon: Server },
   { to: "/events", label: "Events", icon: Activity },
   { to: "/channels", label: "Channels", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings },

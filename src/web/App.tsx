@@ -8,6 +8,7 @@ import { ChannelsPage } from "@/pages/ChannelsPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { EventsPage } from "@/pages/EventsPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { NodesPage } from "@/pages/NodesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SetupPage } from "@/pages/SetupPage";
 
@@ -46,6 +47,7 @@ export function App() {
       <Route path="/login" element={signedIn ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route element={signedIn ? <AppLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<DashboardPage />} />
+        <Route path="nodes" element={<NodesPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="channels" element={<ChannelsPage />} />
         <Route path="settings" element={<SettingsPage />} />
