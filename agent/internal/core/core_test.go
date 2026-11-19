@@ -321,7 +321,7 @@ func TestWriteUnitOnlyWhenChanged(t *testing.T) {
 	os.WriteFile(path, []byte("[Service]\nExecStart=/old\n"), 0o644)
 	reloads := 0
 	reload := func() error { reloads++; return nil }
-	content := fmt.Sprintf(UnitTemplate, "KeepWatch agent", "/usr/local/bin/keepwatch-agent", "", "/var/lib/x", "64M", "128M")
+	content := fmt.Sprintf(UnitTemplate, "KeepWatch agent", "/usr/local/bin/keepwatch-agent", "", "/var/lib/x", "64M", "128M", "")
 
 	changed, err := writeUnit(path, content, reload)
 	if err != nil || !changed || reloads != 1 || !unitUpToDate(path, content) {

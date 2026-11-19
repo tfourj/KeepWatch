@@ -45,6 +45,8 @@ type Options struct {
 	Exit func(code int)
 	// Loops run while a session is connected, for example periodic reports. Send writes one message.
 	Loops []func(ctx context.Context, send func(any) error)
+	// Start runs once when the agent starts, for work that does not need a connection.
+	Start func(ctx context.Context)
 }
 
 // Agent keeps the connection to the server and runs signed commands.
@@ -95,6 +97,9 @@ func websocketURL(serverURL string) (string, error) {
 
 // Run keeps a connection open, reconnecting with jittered backoff.
 func (a *Agent) Run(ctx context.Context) {
+	if a.opts.Start != nil {
+		a.opts.Start(ctx)
+	}
 	backoff := time.Second
 	errorsLog := newRepeatLog(time.Hour)
 	for ctx.Err() == nil {

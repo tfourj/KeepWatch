@@ -11,7 +11,7 @@ import (
 )
 
 // UnitTemplate is the common systemd service file: %[1]s description, %[2]s binary, %[3]s extra [Unit] lines,
-// %[4]s writable paths, %[5]s and %[6]s the memory limits. An updated agent rewrites an outdated copy on start, so
+// %[4]s writable paths, %[5]s and %[6]s the memory limits, %[7]s extra [Service] lines. An updated agent rewrites an outdated copy on start, so
 // new service settings arrive with updates.
 const UnitTemplate = `[Unit]
 Description=%[1]s
@@ -35,7 +35,7 @@ LogRateLimitIntervalSec=60
 LogRateLimitBurst=100
 MemoryHigh=%[5]s
 MemoryMax=%[6]s
-
+%[7]s
 [Install]
 WantedBy=multi-user.target
 `
