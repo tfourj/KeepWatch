@@ -1,6 +1,6 @@
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { db } from "../db/client";
-import { agents, clusters, instanceMembers, nodes, stateTransitions, vrrpInstances } from "../db/schema";
+import { agents, clusters, events, instanceMembers, nodes, stateTransitions, vrrpInstances } from "../db/schema";
 import { emitEvent } from "../events";
 import { createLogger } from "../logger";
 import { getSettings } from "../settings";
@@ -145,7 +145,12 @@ export function handleStatus(nodeId: string, status: KaStatus, now = new Date())
   const instances = db
     .select()
     .from(vrrpInstances)
-    .where(inArray(vrrpInstances.id, members.map((m) => m.instanceId)))
+    .where(
+      inArray(
+        vrrpInstances.id,
+        members.map((m) => m.instanceId),
+      ),
+    )
     .all();
   for (const member of members) {
     const inst = instances.find((i) => i.id === member.instanceId);
@@ -229,7 +234,16 @@ export function evaluateInstance(instanceId: string, now = new Date()) {
   if (!inst) return;
   const members = db.select().from(instanceMembers).where(eq(instanceMembers.instanceId, inst.id)).all();
   const nodeRows = members.length
-    ? db.select().from(nodes).where(inArray(nodes.id, members.map((m) => m.nodeId))).all()
+    ? db
+        .select()
+        .from(nodes)
+        .where(
+          inArray(
+            nodes.id,
+            members.map((m) => m.nodeId),
+          ),
+        )
+        .all()
     : [];
   const online = (m: MemberRow) => nodeRows.find((n) => n.id === m.nodeId)?.online ?? false;
   const reported = members.filter((m) => m.reportedAt && online(m));
@@ -319,7 +333,16 @@ export function checkAlerts(now = new Date()) {
       .where(and(eq(instanceMembers.instanceId, inst.id), eq(instanceMembers.state, "MASTER")))
       .all();
     const names = masters.length
-      ? db.select({ name: nodes.name }).from(nodes).where(inArray(nodes.id, masters.map((m) => m.nodeId))).all()
+      ? db
+          .select({ name: nodes.name })
+          .from(nodes)
+          .where(
+            inArray(
+              nodes.id,
+              masters.map((m) => m.nodeId),
+            ),
+          )
+          .all()
       : [];
     if (inst.splitBrainSince && !inst.splitBrainNotified && now.getTime() - inst.splitBrainSince.getTime() >= grace) {
       db.update(vrrpInstances).set({ splitBrainNotified: true }).where(eq(vrrpInstances.id, inst.id)).run();
@@ -353,9 +376,15 @@ export function nodeBehind(node: Pick<NodeRow, "id" | "appliedSpecHash" | "confi
   return buildNodeSpec(node.id).hash !== node.appliedSpecHash;
 }
 
+/** Drops events and state history older than their retention settings. Deliveries go with their events. */
 export function pruneHistory(now = new Date()) {
-  const cutoff = new Date(now.getTime() - getSettings().historyRetentionDays * 86_400_000);
-  db.delete(stateTransitions).where(lt(stateTransitions.at, cutoff)).run();
+  const { historyRetentionDays, eventRetentionDays } = getSettings();
+  db.delete(stateTransitions)
+    .where(lt(stateTransitions.at, new Date(now.getTime() - historyRetentionDays * 86_400_000)))
+    .run();
+  db.delete(events)
+    .where(lt(events.createdAt, new Date(now.getTime() - eventRetentionDays * 86_400_000)))
+    .run();
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -374,5 +403,6 @@ export function startStateTracking(hub: {
       log.error("alert check failed", { error });
     }
   }, 2_000);
+  pruneHistory();
   setInterval(() => pruneHistory(), 6 * 3600_000);
 }

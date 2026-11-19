@@ -4,6 +4,7 @@ import { db } from "../src/server/db/client";
 import { agents, clusters, events, instanceMembers, nodes, stateTransitions } from "../src/server/db/schema";
 import { vrrpInstances } from "../src/server/db/schema";
 import { checkAlerts, evaluateInstance, handleNodeOffline, handleStatus } from "../src/server/keepalived/state";
+import { pruneHistory } from "../src/server/keepalived/state";
 import { buildNodeSpec } from "../src/server/keepalived/spec";
 import { updateSettings } from "../src/server/settings";
 import { box } from "../src/server/secrets";
@@ -175,5 +176,16 @@ describe("state tracking", () => {
     expect(types).toContain("maintenance_on");
     expect(types).not.toContain("instance_fault");
     evaluateInstance(instanceId);
+  });
+});
+
+describe("retention", () => {
+  test("drops events and history older than the settings", () => {
+    const old = new Date(Date.now() - 400 * 86_400_000);
+    db.insert(events).values({ type: "test", title: "old", message: "old", createdAt: old }).run();
+    db.insert(stateTransitions).values({ instanceId, nodeId: a, toState: "MASTER", at: old }).run();
+    pruneHistory();
+    expect(db.select().from(events).all().some((e) => e.title === "old")).toBe(false);
+    expect(db.select().from(stateTransitions).all().some((t) => t.at.getTime() === old.getTime())).toBe(false);
   });
 });
