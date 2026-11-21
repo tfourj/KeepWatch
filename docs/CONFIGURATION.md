@@ -115,6 +115,9 @@ Templates are set in **Settings → Templates** and can be overridden per channe
 `{event}` `{title}` `{message}` `{cluster}` `{vip}` `{address}` `{node}` `{from}` `{to}` `{state}` `{priority}`
 `{check}` `{reason}` `{count}` `{version}` `{error}` `{duration}` `{time}`
 
+The preset menu fills every template at once: Default, Minimalistic, Detailed, Simplified, and an icon version of
+each. Simplified sends a short title and one line, with changes shown as `lb1 → lb2`.
+
 **Preview** shows a template filled in with an example event. A line whose variables are all empty for an event is
 left out. Channels can be limited to some clusters or nodes.
 
