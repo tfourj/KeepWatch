@@ -111,6 +111,35 @@ const EVENTS: Record<EventType, EventSpec> = {
   test: { icon: "🧪", summary: "{message}", key: [], more: ["time"] },
 };
 
+/** A short title and one line for the simplified presets. Changes read as `from → to`. */
+const SIMPLE: Record<EventType, { title: string; line: string }> = {
+  failover: { title: "Failover {vip}", line: "{from} → {to}" },
+  split_brain: { title: "Split brain {vip}", line: "{node}" },
+  split_brain_resolved: { title: "Split brain resolved {vip}", line: "{address}" },
+  no_master: { title: "No master {vip}", line: "{address}" },
+  master_restored: { title: "Master back {vip}", line: "{node}" },
+  instance_fault: { title: "Fault {vip}", line: "{node}: {from} → {to}" },
+  instance_recovered: { title: "Recovered {vip}", line: "{node}: {from} → {to}" },
+  check_failed: { title: "Check failed {check}", line: "{node}: {error}" },
+  check_recovered: { title: "Check passes {check}", line: "{node}" },
+  maintenance_on: { title: "Maintenance on {node}", line: "{vip}" },
+  maintenance_off: { title: "Maintenance off {node}", line: "{vip}" },
+  keepalived_service_failed: { title: "keepalived down", line: "{node}: {state}" },
+  keepalived_service_recovered: { title: "keepalived up", line: "{node}" },
+  config_applied: { title: "Config applied", line: "{cluster}" },
+  config_failed: { title: "Config failed", line: "{node}: {error}" },
+  config_rolled_back: { title: "Config rolled back", line: "{node}: {error}" },
+  config_drift: { title: "Config edited by hand", line: "{node}" },
+  agent_connected: { title: "Agent connected", line: "{node}: v{version}" },
+  agent_disconnected: { title: "Agent disconnected", line: "{node}" },
+  agent_enrolled: { title: "Agent paired", line: "{node}: v{version}" },
+  agent_update_available: { title: "Agent update available", line: "{node} → v{version}" },
+  agent_updated: { title: "Agent updated", line: "{node} → v{version}" },
+  agent_update_failed: { title: "Agent update failed", line: "{node}: {error}" },
+  login: { title: "New sign-in", line: "{message}" },
+  test: { title: "Test notification", line: "{message}" },
+};
+
 type LineStyle = "text" | "icon" | "icon-text";
 
 function detailLine(detail: Detail, style: LineStyle): string {
@@ -130,6 +159,16 @@ function forEachEvent(build: (spec: EventSpec) => Template): Record<EventType, T
 }
 
 const iconTitle = (spec: EventSpec) => `${spec.icon} {title}`;
+
+function simplified(withIcons: boolean): Record<EventType, Template> {
+  return Object.fromEntries(
+    EVENT_TYPES.map((type) => {
+      const { title, line } = SIMPLE[type];
+      if (!withIcons) return [type, { title, body: line }];
+      return [type, { title: `${EVENTS[type].icon} ${title}`, body: line.replaceAll(" → ", " ➡️ ") }];
+    }),
+  ) as Record<EventType, Template>;
+}
 
 /** Ready-made template sets. The first one is the built-in default. */
 export const TEMPLATE_PRESETS: TemplatePreset[] = [
@@ -153,6 +192,7 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
       ),
     })),
   },
+  { id: "simple", label: "Simplified", templates: simplified(false) },
   {
     id: "icon-default",
     label: "Icon Default",
@@ -171,6 +211,7 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
       body: body(spec.summary, [...spec.key, ...spec.more], "icon-text"),
     })),
   },
+  { id: "icon-simple", label: "Icon Simplified", templates: simplified(true) },
 ];
 
 /** The preset whose templates equal the given ones for every event type, if any. */
