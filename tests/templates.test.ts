@@ -113,6 +113,13 @@ describe("template presets", () => {
     expect(preview("minimal", "config_failed").body).toBe("keepalived rejected the config");
   });
 
+  test("simplified presets show changes as from and to", () => {
+    expect(preview("simple", "failover")).toEqual({ title: "Failover VI_web", body: "lb1 → lb2" });
+    expect(preview("icon-simple", "failover")).toEqual({ title: "🔀 Failover VI_web", body: "lb1 ➡️ lb2" });
+    expect(preview("icon-simple", "instance_fault").body).toBe("lb1: MASTER ➡️ FAULT");
+    expect(preview("simple", "agent_updated").body).toBe("lb1, lb2, lb3 → v1.5.0");
+  });
+
   test("presets leave out values an event does not carry", () => {
     const check = preview("icon-detailed", "check_failed").body;
     expect(check).toMatch(/^web is failing on lb1\n❗ connection refused\n🗂️ Cluster edge\n🕒 /);
